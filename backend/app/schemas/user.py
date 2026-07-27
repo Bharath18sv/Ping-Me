@@ -29,3 +29,12 @@ class UserPublic(BaseModel):
     name: str
     username: str
 
+# used for user search more
+class UserPublic(BaseModel):
+    id: uuid.UUID
+    name:str
+    username: str
+
+    class Config:
+        from_attributes = True
+

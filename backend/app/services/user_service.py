@@ -2,6 +2,7 @@
 # get user by username
 # create user
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -48,3 +49,20 @@ def get_user_by_id(db:Session, id:str):
         .filter(User.id == id)
         .first()
     )
+
+# we are passing current user id, because we don't want to search themself
+def search_users(db:Session, query:str, current_user_id:str, limit:int = 20):
+    print("Searching users...")
+    # don't use a newline after return keyword
+    return (
+        db.query(User).filter(
+            User.id != current_user_id, #don't return the same person details
+            or_(
+                User.name.ilike(f"%{query}%"), #search for name
+                User.username.ilike(f"%{query}%") #search for username
+                )
+            )
+            .limit(limit)
+            .all()
+    )
+
