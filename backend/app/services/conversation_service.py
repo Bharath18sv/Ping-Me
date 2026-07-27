@@ -1,6 +1,8 @@
 import uuid
 
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import or_, func
 
 from app.models.conversation import Conversation
@@ -76,4 +78,46 @@ def create_or_get_conversation(
     db.refresh(conversation)
 
     return conversation
-    
+
+# get all the conversation of the current user to display in the left panel  
+def get_conversations(
+    db: Session,
+    current_user_id: uuid.UUID,
+):
+    other = aliased(Participant)
+    conversations = (
+        db.query(Conversation, User)
+        .join(
+            Participant,
+            Conversation.id == Participant.conversation_id,
+        )
+        .join(
+            other,
+            Conversation.id == other.conversation_id,
+        )
+        .join(
+            User,
+            User.id == other.user_id,
+        )
+        .filter(
+            Participant.user_id == current_user_id,
+            other.user_id != current_user_id,
+            Conversation.is_group == False,
+        )
+        .order_by(
+            Conversation.updated_at.desc(),
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": conversation.id,
+            "is_group": conversation.is_group,
+            "name": conversation.name,
+            "created_at": conversation.created_at,
+            "updated_at": conversation.updated_at,
+            "other_user": user,
+        }
+        for conversation, user in conversations
+    ]

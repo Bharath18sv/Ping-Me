@@ -37,5 +37,3 @@ class Conversation(Base):
         nullable=False
     )
 
-class ConversationListItem(ConversationResponse):
-    pass

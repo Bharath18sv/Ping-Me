@@ -7,8 +7,9 @@ from app.models.user import User
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationResponse,
+    ConversationListItem
 )
-from app.services.conversation_service import create_or_get_conversation
+from app.services.conversation_service import create_or_get_conversation, get_conversations
 
 router = APIRouter()
 
@@ -28,3 +29,7 @@ def create_conversation(
         current_user_id=current_user.id,
         other_user_id=payload.user_id
     )
+
+@router.get("", response_model=list[ConversationListItem])
+def list_conversations(db:Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    return get_conversations(db=db, current_user_id=current_user.id)

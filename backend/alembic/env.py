@@ -1,7 +1,6 @@
 from app.db.database import Base
-from app.models.user import User
-from app.models.conversation import Conversations
-from app.models.participants import Participants
+from app.db.models.user import User
+from app.db.models import *
 # target_metadata = Base.metadata
 
 from logging.config import fileConfig
