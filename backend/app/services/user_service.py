@@ -1,6 +1,3 @@
-# get user by email
-# get user by username
-# create user
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -62,6 +59,7 @@ def search_users(db:Session, query:str, current_user_id:str, limit:int = 20):
                 User.username.ilike(f"%{query}%") #search for username
                 )
             )
+            .order_by(User.username) #sort the users based on username
             .limit(limit)
             .all()
     )
