@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.user import UserPublic
+from app.users.schemas import UserPublic
 
 # {
 #     "user_id": "3efc8f59-77a5-4f59-9d56-c7a35e7cb8a8"

@@ -3,11 +3,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from sqlalchemy.orm import Session
 
-from app.core.security import decode_token
+from app.auth.jwt import decode_token
 
 from app.db.dependencies import get_db
 
-from app.services.user_service import get_user_by_id
+from app.users.service import get_user_by_id
 
 # The security object is used to extract the token from the request header.
 # It is a dependency that will be called by the router.

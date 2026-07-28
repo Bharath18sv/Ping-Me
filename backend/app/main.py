@@ -7,8 +7,9 @@ from app.messages.router import router as messages_router
 app = FastAPI()
 
 app.include_router(auth_router, prefix='/auth', tags=["Authentication"])
-app.include_router(user_router, prefix='/users', tags=["Users"])
-app.include_router(conversation_router, prefix="/conversations", tags=["Conversations"])
+app.include_router(users_router, prefix='/users', tags=["Users"])
+app.include_router(conversations_router, prefix="/conversations", tags=["Conversations"])
+app.include_router(messages_router, prefix="/messages", tags=["Messages"])
 
 @app.get("/")
 def root():
