@@ -1,19 +1,19 @@
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
+from app.auth.jwt import decode_token
 
 from app.db.dependencies import get_db
 
-from app.services.user_service import get_user_by_id
+from app.users.service import get_user_by_id
 
 # The security object is used to extract the token from the request header.
 # It is a dependency that will be called by the router.
 security = HTTPBearer()
 
-def get_current_user(credentials:HTTPAuthorizationCredentials=Depends(security), db: Session = Depends(get_db)):
+async def get_current_user(credentials:HTTPAuthorizationCredentials=Depends(security), db: AsyncSession = Depends(get_db)):
     payload = decode_token(credentials.credentials)
 
     if payload is None:
@@ -33,7 +33,7 @@ def get_current_user(credentials:HTTPAuthorizationCredentials=Depends(security),
             detail="Invalid Token."
         )
     
-    user = get_user_by_id(db, payload["sub"])
+    user = await get_user_by_id(db, payload["sub"])
 
     if not user:
         raise HTTPException(

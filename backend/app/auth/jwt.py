@@ -1,23 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
-# this tells passlib use bcrypt for hashing
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
-
-# helper to hash the password
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-# helper to verify the password
-def verify_password(plain_passw:str, hashed_passw:str) -> bool:
-    return pwd_context.verify(plain_passw, hashed_passw)
 
 # helper to create access token
 def create_access_token(user_id:str) -> str:
@@ -50,7 +35,3 @@ def decode_token(token:str):
         return payload
     except JWTError:
         return None
-
-
-
-
