@@ -35,6 +35,38 @@ async def get_conversations(
             "created_at": conversation.created_at,
             "updated_at": conversation.updated_at,
             "other_user": user,
+            "last_message": last_message,
+            "unread_count": unread_count
         }
-        for conversation, user in conversations
+        for conversation, user, last_message, unread_count in conversations
     ]
+
+async def mark_conversation_as_read(
+    db:AsyncSession,
+    conversation_id:uuid.UUID,
+    user_id:uuid.UUID
+):
+    conversation = await ConversationRepository.get_conversation_by_id(
+        db,
+        conversation_id
+    )
+
+    if not conversation:
+        raise HTTPException(
+            status_code=404,
+            detail="Conversation not found"
+        )
+    
+    participant = await ConversationRepository.get_participant(db, conversation_id, user_id)
+
+    if not participant:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not a participant of this conversation"
+        )
+
+    await ConversationRepository.mark_as_read(
+        db, 
+        conversation_id, 
+        user_id
+    )

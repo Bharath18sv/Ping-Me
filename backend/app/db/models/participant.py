@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import Date, Boolean, DateTime, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,7 +29,12 @@ class Participant(Base):
         nullable=False,
     )
 
-    joined_at: Mapped[DateTime] = mapped_column(
+    last_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,

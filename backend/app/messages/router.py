@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -28,12 +28,16 @@ async def send_message(
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageListItem])
 async def list_messages(
     conversation_id:uuid.UUID,
+    cursor:uuid.UUID | None = Query(default=None),
+    limit:int = Query(default=50,ge=1,le=100),
     db:AsyncSession = Depends(get_db),
-    current_user:User = Depends(get_current_user)
+    current_user:User = Depends(get_current_user),
 ):
     return await get_messages(
-        conversation_id=conversation_id,
         db=db,
-        user_id=current_user.id
+        conversation_id=conversation_id,
+        user_id=current_user.id,
+        cursor=cursor,
+        limit=limit
     )
     

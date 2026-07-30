@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.messages.repository import MessageRepository
+from app.conversations.repository import ConversationRepository
 
 async def create_message(
     db: AsyncSession,
@@ -10,11 +11,11 @@ async def create_message(
     sender_id: uuid.UUID,
     content: str,
 ):
-    conversation = await MessageRepository.get_conversation_by_id(db, conversation_id)
+    conversation = await ConversationRepository.get_conversation_by_id(db, conversation_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    participant = await MessageRepository.get_participant(db, conversation_id, sender_id)
+    participant = await ConversationRepository.get_participant(db, conversation_id, sender_id)
 
     if not participant:
         raise HTTPException(status_code=403, detail="You are not a participant of this conversation")
@@ -24,10 +25,12 @@ async def create_message(
 async def get_messages(
     db:AsyncSession,
     conversation_id:uuid.UUID,
-    user_id:uuid.UUID
+    user_id:uuid.UUID,
+    cursor:uuid.UUID | None,
+    limit:int
 ):
     # first check the user has a conversation and whether he's a part of it
-    conversation = await MessageRepository.get_conversation_by_id(db, conversation_id)
+    conversation = await ConversationRepository.get_conversation_by_id(db, conversation_id)
 
     if not conversation:
         raise HTTPException(
@@ -35,7 +38,7 @@ async def get_messages(
             detail="Conversation not found"
         )
     
-    participant = await MessageRepository.get_participant(db, conversation_id, user_id)
+    participant = await ConversationRepository.get_participant(db, conversation_id, user_id)
 
     if not participant:
         raise HTTPException(
@@ -43,4 +46,9 @@ async def get_messages(
             detail="You are not a part of this conversation"
         )
     
-    return await MessageRepository.get_messages(db, conversation_id)
+    return await MessageRepository.get_messages(
+        db, 
+        conversation_id,
+        cursor,
+        limit
+    )

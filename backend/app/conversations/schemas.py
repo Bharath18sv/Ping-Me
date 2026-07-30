@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.users.schemas import UserPublic
+from app.messages.schemas import MessageListItem
 
 # {
 #     "user_id": "3efc8f59-77a5-4f59-9d56-c7a35e7cb8a8"
@@ -25,7 +26,11 @@ class ConversationListItem(BaseModel):
     id: uuid.UUID
     is_group: bool
     name: str | None
+
     other_user: UserPublic | None
+    last_message: MessageListItem | None
+
+    unread_count : int
 
     created_at: datetime
     updated_at: datetime

@@ -10,7 +10,6 @@ from app.auth.passwords import hash_password
 
 class UserRepository:
 
-    @staticmethod
     async def create_user(db: AsyncSession, user: UserCreate):
         try:
             db_user = User(
@@ -31,22 +30,18 @@ class UserRepository:
             await db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
 
-    @staticmethod
     async def get_user_by_email(db: AsyncSession, email: str):
         result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
-    @staticmethod
     async def get_user_by_username(db: AsyncSession, username: str):
         result = await db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
-    @staticmethod
     async def get_user_by_id(db: AsyncSession, id: str):
         result = await db.execute(select(User).where(User.id == id))
         return result.scalar_one_or_none()
-
-    @staticmethod
+        
     async def search_users(db: AsyncSession, query: str, current_user_id: str, limit: int = 20):
         print("Searching users...")
         result = await db.execute(

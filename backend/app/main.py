@@ -9,7 +9,7 @@ app = FastAPI()
 app.include_router(auth_router, prefix='/auth', tags=["Authentication"])
 app.include_router(users_router, prefix='/users', tags=["Users"])
 app.include_router(conversations_router, prefix="/conversations", tags=["Conversations"])
-app.include_router(messages_router, prefix="/messages", tags=["Messages"])
+app.include_router(messages_router, tags=["Messages"])
 
 @app.get("/")
 def root():
