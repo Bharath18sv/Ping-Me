@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
 
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     class Config:
         env_file = ".env"
 

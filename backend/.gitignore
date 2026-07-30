@@ -77,4 +77,4 @@ alembic/versions/*.pyc
 # Misc
 # =========================
 *.swp
-*.swo
+*.swo*.rdb
