@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_, select
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -11,7 +11,7 @@ from app.auth.passwords import hash_password
 class UserRepository:
 
     @staticmethod
-    def create_user(db: Session, user: UserCreate):
+    async def create_user(db: AsyncSession, user: UserCreate):
         try:
             db_user = User(
                 name=user.name,
@@ -21,33 +21,36 @@ class UserRepository:
             )
 
             db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
+            await db.commit()
+            await db.refresh(db_user)
             return db_user
         except IntegrityError:
-            db.rollback()
+            await db.rollback()
             raise HTTPException(status_code=400, detail="user already exists")
         except Exception as e:
-            db.rollback()
+            await db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
 
     @staticmethod
-    def get_user_by_email(db: Session, email: str):
-        return db.query(User).filter(User.email == email).first() 
+    async def get_user_by_email(db: AsyncSession, email: str):
+        result = await db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_user_by_username(db: Session, username: str):
-        return db.query(User).filter(User.username == username).first()
+    async def get_user_by_username(db: AsyncSession, username: str):
+        result = await db.execute(select(User).where(User.username == username))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_user_by_id(db: Session, id: str):
-        return db.query(User).filter(User.id == id).first()
+    async def get_user_by_id(db: AsyncSession, id: str):
+        result = await db.execute(select(User).where(User.id == id))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def search_users(db: Session, query: str, current_user_id: str, limit: int = 20):
+    async def search_users(db: AsyncSession, query: str, current_user_id: str, limit: int = 20):
         print("Searching users...")
-        return (
-            db.query(User).filter(
+        result = await db.execute(
+            select(User).where(
                 User.id != current_user_id,
                 or_(
                     User.name.ilike(f"%{query}%"),
@@ -56,6 +59,5 @@ class UserRepository:
             )
             .order_by(User.username)
             .limit(limit)
-            .all()
         )
-
+        return result.scalars().all()

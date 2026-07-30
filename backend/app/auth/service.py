@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.users.schemas import UserCreate
 from app.auth.schemas import LoginRequest, Token
@@ -9,26 +9,26 @@ from app.auth.passwords import verify_password
 
 class AuthService:
     @staticmethod
-    def signup(db: Session, user: UserCreate):
-        existing_user = UserRepository.get_user_by_email(db, user.email)
+    async def signup(db: AsyncSession, user: UserCreate):
+        existing_user = await UserRepository.get_user_by_email(db, user.email)
         if existing_user:
             raise HTTPException(
                 status_code=400,
                 detail="Email already exists."
             )
 
-        existing_username = UserRepository.get_user_by_username(db, user.username)
+        existing_username = await UserRepository.get_user_by_username(db, user.username)
         if existing_username:
             raise HTTPException(
                 status_code=400,
                 detail="Username already exists."
             )
 
-        return UserRepository.create_user(db, user)
+        return await UserRepository.create_user(db, user)
 
     @staticmethod
-    def login(db: Session, request: LoginRequest):
-        existing_user = UserRepository.get_user_by_email(db, request.email)
+    async def login(db: AsyncSession, request: LoginRequest):
+        existing_user = await UserRepository.get_user_by_email(db, request.email)
 
         if not existing_user:
             raise HTTPException(

@@ -1,13 +1,6 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import SessionLocal
 
-def get_db():
-    db = SessionLocal()
-
-    try:
+async def get_db():
+    async with SessionLocal() as db:
         yield db
-    finally:
-        db.close()
-
-# helper to create tables in the database
-# def create_tables():
-#     Base.metadata.create_all(bind=engine)

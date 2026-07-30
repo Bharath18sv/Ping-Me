@@ -58,5 +58,6 @@ class Message(Base):
             "idx_messages_conversation_created_at",
             "conversation_id",
             "created_at",
+            "id",
         ),
     )

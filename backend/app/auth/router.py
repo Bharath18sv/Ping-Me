@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db
 from app.users.schemas import UserCreate, UserResponse
@@ -11,9 +11,9 @@ from app.auth.schemas import LoginRequest, Token
 router = APIRouter()
 
 @router.post("/signup", response_model=UserResponse)
-def signup(user: UserCreate, db: Session = Depends(get_db)):
+async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
-        return AuthService.signup(db, user)
+        return await AuthService.signup(db, user)
     except HTTPException as he:
         raise he
     except Exception as e:
@@ -23,9 +23,9 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/login", response_model=Token)
-def login(user: LoginRequest, db: Session = Depends(get_db)):
+async def login(user: LoginRequest, db: AsyncSession = Depends(get_db)):
     try:
-        return AuthService.login(db, user)
+        return await AuthService.login(db, user)
     except HTTPException as he:
         raise he
     except Exception as e:
@@ -34,6 +34,5 @@ def login(user: LoginRequest, db: Session = Depends(get_db)):
 from app.auth.dependencies import get_current_user
 
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user=Depends(get_current_user)):
+async def get_me(current_user=Depends(get_current_user)):
     return current_user
-
