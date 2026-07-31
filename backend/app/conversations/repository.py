@@ -175,4 +175,15 @@ class ConversationRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_user_conversation_ids(
+        db:AsyncSession,
+        user_id:uuid.UUID
+    ):
+        # make sure to use await
+        result = await db.execute(
+            select(Participant.conversation_id)
+            .where(Participant.user_id == user_id)
+        )
+
+        return result.scalars().all()
         
