@@ -4,7 +4,38 @@ from app.users.router import router as users_router
 from app.conversations.router import router as conversations_router
 from app.messages.router import router as messages_router
 
-app = FastAPI()
+from contextlib import asynccontextmanager
+
+from app.redis.client import redis_client, check_redis_connection
+
+import logging
+from app.core.logging import setup_logging
+
+from app.sockets.server import socket_app
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("LIFESPAN START")
+
+    logger.info("🚀 Starting the application")
+    await check_redis_connection()
+    logger.info("✅ Redis connected")
+
+    yield
+
+    print("LIFESPAN END")
+
+    await redis_client.close()
+    logger.info("⛔ Redis disconnected")
+
+app = FastAPI(lifespan=lifespan)
+
+# mount socket.io app
+app.mount("/socket.io", socket_app)
 
 app.include_router(auth_router, prefix='/auth', tags=["Authentication"])
 app.include_router(users_router, prefix='/users', tags=["Users"])

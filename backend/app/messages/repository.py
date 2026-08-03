@@ -1,27 +1,14 @@
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, update
 
 from app.db.models.conversation import Conversation
 from app.db.models.message import Message
 from app.db.models.participant import Participant
 
-class MessageRepository:
-    # duplicated from conversation repository
-    # @staticmethod
-    # async def get_conversation_by_id(db: AsyncSession, conversation_id: uuid.UUID):
-    #     result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
-    #     return result.scalar_one_or_none()
+from datetime import datetime, timezone
 
-    # @staticmethod
-    # async def get_participant(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.UUID):
-        # result = await db.execute(
-        #     select(Participant).where(
-        #         Participant.conversation_id == conversation_id,
-        #         Participant.user_id == user_id,
-        #     )
-        # )
-        # return result.scalar_one_or_none()
+class MessageRepository:
 
     async def create_message(db: AsyncSession, conversation_id: uuid.UUID, sender_id: uuid.UUID, content: str, conversation: Conversation):
         message = Message(
@@ -35,6 +22,7 @@ class MessageRepository:
         # changed from message.updated_at to func.now()
         conversation.updated_at = func.now()
         
+        await db.flush()
         await db.commit()
         await db.refresh(message)
         return message
@@ -56,7 +44,10 @@ class MessageRepository:
             # select the cursor message (the message from which we need to retrieve the old messages)
             cursor_result = await db.execute(
                 select(Message)
-                .where(Message.id == cursor)
+                .where(
+                    Message.id == cursor,
+                    Message.conversation_id == conversation_id
+                )
             )
 
             # return only one row or none
@@ -76,9 +67,46 @@ class MessageRepository:
 
         result = await db.execute(stmt)
 
-        # # scalars() extract first column from each row
-        # # all() converts ScalarResult into a python list
-        # return result.scalars().all()
+        # scalars() extract first column from each row
+        # all() converts ScalarResult into a python list
         return result.scalars().all()
+    
+    async def get_message_by_id(
+        db:AsyncSession,
+        message_id:uuid.UUID
+    ):
+        result =  await db.execute(
+            select(Message)
+            .where(
+                Message.id == message_id
+            )
+        )
+        return result.scalar_one_or_none()
+    
+    async def update_message(
+        db: AsyncSession,
+        message: Message,
+        content: str,
+    ):
+        message.content = content
+        message.is_edited = True
+        message.edited_at = datetime.now(timezone.utc)
+
+        await db.commit()
+        await db.refresh(message)
+
+        return message
         
-        
+    async def soft_delete_message(
+        db: AsyncSession,
+        message: Message,
+    ):
+        # content becomes like this (in db)
+        message.content = null
+        message.is_deleted = True
+        message.deleted_at = datetime.now(timezone.utc)
+
+        await db.commit()
+        await db.refresh(message)
+
+        return message     

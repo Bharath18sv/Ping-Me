@@ -11,7 +11,7 @@ else:
 
 engine = create_async_engine(ASYNC_DATABASE_URL)
 
-SessionLocal = async_sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,

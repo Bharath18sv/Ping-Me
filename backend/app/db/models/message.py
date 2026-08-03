@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
 
-from sqlalchemy import Index
+from sqlalchemy import Index, Boolean
 
 
 class Message(Base):
@@ -40,6 +40,22 @@ class Message(Base):
     is_edited: Mapped[bool] = mapped_column(
         default=False,
         nullable=False,
+    )
+
+    edited_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    is_deleted = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    deleted_at = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(

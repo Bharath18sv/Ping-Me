@@ -1,4 +1,6 @@
+import uuid
 from datetime import datetime, timedelta, timezone
+from fastapi import HTTPException, status
 
 from jose import JWTError, jwt
 
@@ -9,7 +11,7 @@ def create_access_token(user_id:str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     payload = {
-        "sub" : str(user_id), #converted the uuid object into a string
+        "sub" : str(user_id), #converted the uuid object into a string, sub means subject
         "exp" : expire,
         "type" : "access"
     }
