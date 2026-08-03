@@ -69,11 +69,7 @@ class MessageRepository:
 
         # scalars() extract first column from each row
         # all() converts ScalarResult into a python list
-        messages = result.scalars().all()
-
-        # messages were ordered in descending order (latest first)
-        # so, reverse them to return in ascending order (oldest first)
-        return list(reversed(messages))
+        return result.scalars().all()
     
     async def get_message_by_id(
         db:AsyncSession,
@@ -106,7 +102,7 @@ class MessageRepository:
         message: Message,
     ):
         # content becomes like this (in db)
-        message.content = "This message was deleted"
+        message.content = null
         message.is_deleted = True
         message.deleted_at = datetime.now(timezone.utc)
 

@@ -54,6 +54,8 @@ class ConversationRepository:
                 # rename column from max_1 to the given 
                 func.max(Message.created_at).label("latest_created_at")
             )
+            # don't return deleted messages (they won't be counted in unread count either)
+            .where(Message.deleted_at.is_(None))
             .group_by(Message.conversation_id)
             .subquery()
         )
@@ -71,16 +73,17 @@ class ConversationRepository:
                 current_participant.conversation_id == Message.conversation_id,
             )
             .where(
+                Message.deleted_at.is_(None),
                 current_participant.user_id == current_user_id,
+                Message.sender_id != current_user_id,
                 or_(
                     current_participant.last_read_at.is_(None),
-                Message.created_at > current_participant.last_read_at,
-            ),
+                    Message.created_at > current_participant.last_read_at,
+                ),
+            )
+            .group_by(Message.conversation_id)
+            .subquery()
         )
-        .group_by(Message.conversation_id)
-        .subquery()
-    )
-
         result = await db.execute(
             select(
                 Conversation, 
