@@ -65,8 +65,10 @@ async def mark_conversation_as_read(
             detail="You are not a participant of this conversation"
         )
 
-    await ConversationRepository.mark_as_read(
+    message_ids = await ConversationRepository.mark_as_read(
         db, 
         conversation_id, 
         user_id
     )
+
+    return message_ids

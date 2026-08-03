@@ -17,9 +17,9 @@ async def join_conversation_rooms(
             f"conversation:{conversation_id}"
         )
 
-    logger.info(
-            "Socket %s joined rooms %s",
-            sid,
-            conversation_ids,
-        )
+    # logger.info(
+    #         "Socket %s joined rooms %s",
+    #         sid,
+    #         conversation_ids,
+    #     )
     

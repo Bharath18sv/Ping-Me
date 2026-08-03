@@ -135,6 +135,32 @@ class ConversationRepository:
         conversation_id:uuid.UUID, 
         user_id:uuid.UUID
     ):
+        #get the participant
+        participant = await db.execute(
+            select(Participant)
+            .where(
+                Participant.user_id == user_id,
+                Participant.conversation_id == conversation_id,
+            )
+        )
+
+        participant = participant.scalar_one()
+        
+        # fetch unread messages
+        result = await db.execute(
+            select(Message.id)
+            .where(
+                Message.conversation_id == conversation_id,
+                Message.sender_id != user_id,
+                (
+                    (participant.last_read_at.is_(None)) 
+                    | Message.created_at > participant.last_read_at
+                )
+            )
+        )
+        
+        message_ids = result.scalars().all()
+        
         # update last read for the conversation for the user who is marking as read
         await db.execute(
             update(Participant)
@@ -146,6 +172,8 @@ class ConversationRepository:
         )
 
         await db.commit()
+        # message ids used for marking msgs as read
+        return message_ids
     
     async def get_conversation_by_id(
         db:AsyncSession,

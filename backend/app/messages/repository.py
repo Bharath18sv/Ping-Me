@@ -35,6 +35,7 @@ class MessageRepository:
         # changed from message.updated_at to func.now()
         conversation.updated_at = func.now()
         
+        await db.flush()
         await db.commit()
         await db.refresh(message)
         return message

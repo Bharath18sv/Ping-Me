@@ -32,4 +32,11 @@ class SocketRepository:
         return await self.redis.smembers(
             f"socket:user:{user_id}"
         )
+    
+    async def socket_count(
+        self,
+        user_id:str
+    ) -> int:
+        return await self.redis.scard(f"socket:user:{user_id}")
+
 
