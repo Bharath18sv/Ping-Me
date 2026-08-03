@@ -78,7 +78,6 @@ alembic/versions/*.pyc
 # =========================
 *.swp
 *.swo
-dump.rdb
 
 .env*
 .env.*

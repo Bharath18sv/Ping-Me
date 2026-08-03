@@ -2,8 +2,13 @@ fastapi
 uvicorn 
 sqlalchemy 
 psycopg2-binary 
+asyncpg
 alembic 
 pydantic-settings 
 python-jose 
 passlib[bcrypt]
 python-dotenv
+
+redis[hiredis]>=6.4.0
+
+python-socketio>=5.13.0
