@@ -1,7 +1,13 @@
+from app.core.config import settings
 import socketio
+
+manager = socketio.AsyncRedisManager(
+    settings.REDIS_URL
+)
 
 sio = socketio.AsyncServer(
     async_mode="asgi",
+    client_manager=manager,
     # add later
     cors_allowed_origins=[],
     logger=True,

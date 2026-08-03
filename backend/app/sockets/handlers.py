@@ -1,5 +1,14 @@
 import logging
 
+from app.messages.socket_schemas import (
+    SendMessageEvent,
+    TypingEvent,
+    MessageDeliveredEvent,
+    DeleteMessageEvent,
+)
+from app.messages.service import create_message, edit_message, delete_message
+from app.messages.schemas import MessageResponse, EditMessageEvent
+
 from app.sockets.server import sio
 from app.sockets.auth import authenticate_socket
 from app.sockets.rooms import join_conversation_rooms
@@ -79,10 +88,6 @@ async def disconnect(sid):
     )
 
     logger.info("Socket disconnected: %s (%s)", sid, session.get("user_id"))
-
-from app.messages.socket_schemas import SendMessageEvent,TypingEvent
-from app.messages.service import create_message
-from app.messages.schemas import MessageResponse
 
 @sio.event
 async def message_send(sid, data):
@@ -168,7 +173,6 @@ async def typing_stop(sid, data):
         skip_sid=sid,
     )
 
-
 from app.conversations.socket_schemas import ConversationReadEvent
 @sio.event
 async def conversation_read(sid, data):
@@ -193,8 +197,6 @@ async def conversation_read(sid, data):
         },
         room=f"conversation:{payload.conversation_id}"
     )
-
-from app.messages.socket_schemas import MessageDeliveredEvent
 
 @sio.event
 async def message_delivered(sid, data):
@@ -224,4 +226,47 @@ async def message_delivered(sid, data):
             "delivered_to": str(session["user_id"])
         },
         room=f"conversation:{payload.conversation_id}",
+    )
+
+@sio.event
+async def message_edit(sid, data):
+    session = await sio.get_session(sid)
+
+    payload = EditMessageEvent.model_validate(data)
+
+    async with AsyncSessionLocal() as db:
+        message = await edit_message(
+            db=db,
+            message_id=payload.message_id,
+            user_id=session["user_id"],
+            content=payload.content,
+        )
+
+        response = MessageResponse.model_validate(message)
+
+    await sio.emit(
+        "message_updated",
+        response.model_dump(mode="json"),
+        room=f"conversation:{message.conversation_id}",
+    )
+
+@sio.event
+async def message_delete(sid, data):
+    session = await sio.get_session(sid)
+
+    payload = DeleteMessageEvent.model_validate(data)
+
+    async with AsyncSessionLocal() as db:
+        message = await delete_message(
+            db=db,
+            message_id=payload.message_id,
+            user_id=session["user_id"],
+        )
+
+        response = MessageResponse.model_validate(message)
+
+    await sio.emit(
+        "message_deleted",
+        response.model_dump(mode="json"),
+        room=f"conversation:{message.conversation_id}",
     )

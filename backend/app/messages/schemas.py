@@ -1,7 +1,7 @@
 import uuid
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class MessageCreate(BaseModel):
     content:str
@@ -11,7 +11,10 @@ class MessageResponse(BaseModel):
     conversation_id:uuid.UUID
     sender_id:uuid.UUID
     content:str
-    is_edited:bool
+    is_edited:bool 
+    edited_at: datetime | None
+    is_deleted: bool
+    deleted_at: datetime | None
     created_at:datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -22,8 +25,18 @@ class MessageListItem(BaseModel):
     sender_id:uuid.UUID
     content:str
     is_edited:bool
+    edited_at: datetime | None
+    is_deleted: bool
+    deleted_at: datetime | None
     created_at:datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class MessageUpdate(BaseModel):
+    content:str = Field(min_length=1, max_length=4000)
+
+class EditMessageEvent(BaseModel):
+    message_id: uuid.UUID
+    content: str = Field(min_length=1, max_length=4000)
 
 

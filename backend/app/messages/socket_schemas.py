@@ -11,3 +11,6 @@ class TypingEvent(BaseModel):
 class MessageDeliveredEvent(BaseModel):
     conversation_id: uuid.UUID
     message_ids: list[uuid.UUID]
+
+class DeleteMessageEvent(BaseModel):
+    message_id: uuid.UUID

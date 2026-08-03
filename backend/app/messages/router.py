@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.db.dependencies import get_db
-from app.messages.schemas import MessageCreate, MessageResponse, MessageListItem
 from app.db.models.user import User
-from app.messages.service import create_message, get_messages
+
+from app.messages.schemas import MessageCreate, MessageResponse, MessageListItem, MessageUpdate
+from app.messages.service import create_message, get_messages, edit_message, delete_message
 
 router = APIRouter()
 
@@ -41,3 +42,34 @@ async def list_messages(
         limit=limit
     )
     
+@router.patch(
+    "/messages/{message_id}",
+    response_model=MessageResponse,
+)
+async def update_message(
+    message_id: uuid.UUID,
+    payload: MessageUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await edit_message(
+        db=db,
+        message_id=message_id,
+        user_id=current_user.id,
+        content=payload.content,
+    )
+
+@router.delete(
+    "/messages/{message_id}",
+    response_model=MessageResponse,
+)
+async def remove_message(
+    message_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await delete_message(
+        db=db,
+        message_id=message_id,
+        user_id=current_user.id,
+    )
