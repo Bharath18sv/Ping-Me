@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.dependencies import get_db
@@ -22,14 +22,47 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
             detail=str(e)
         )
 
-@router.post("/login", response_model=Token)
-async def login(user: LoginRequest, db: AsyncSession = Depends(get_db)):
+@router.post("/login", response_model=dict)
+async def login(
+    user: LoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     try:
-        return await AuthService.login(db, user)
+        token = await AuthService.login(db, user)
+
+        response.set_cookie(
+            key="access_token",
+            value=token.access_token,
+            httponly=True,
+            secure=False,      # localhost development
+            samesite="lax",
+            max_age=15 * 60,
+            path="/",
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=token.refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60,
+            path="/",
+        )
+
+        return {
+            "message": "Login successful"
+        }
+
     except HTTPException as he:
         raise he
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 from app.auth.dependencies import get_current_user
 

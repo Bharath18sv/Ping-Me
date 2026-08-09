@@ -82,3 +82,5 @@ alembic/versions/*.pyc
 .env*
 .env.*
 .env
+
+dump.rdb
