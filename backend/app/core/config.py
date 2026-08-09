@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
 
     REDIS_URL: str
+    
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_REGION: str = "ap-south-1"
+    AWS_S3_BUCKET: str
 
     class Config:
         env_file = ".env"
