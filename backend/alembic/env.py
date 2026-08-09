@@ -3,6 +3,7 @@ from app.db.models.user import User
 from app.db.models.conversation import Conversation
 from app.db.models.message import Message
 from app.db.models.participant import Participant
+from app.db.models.attachments import Attachment
 # target_metadata = Base.metadata
 
 from logging.config import fileConfig
