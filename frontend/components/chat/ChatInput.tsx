@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Send, Smile } from 'lucide-react';
+import { Send, Paperclip, Smile } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { sendMessageThunk } from '@/features/chat.slice';
 import { getSocket } from '@/lib/socket';
@@ -28,8 +28,8 @@ export function ChatInput({ conversationId }: ChatInputProps) {
     }, 2000);
   };
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!content.trim() || !currentUser) return;
 
     const validation = sendMessageSchema.safeParse({ content: content.trim() });
@@ -54,13 +54,32 @@ export function ChatInput({ conversationId }: ChatInputProps) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <form onSubmit={handleSend} className="p-4 glass-panel border-t border-slate-200/80 dark:border-zinc-800/80 flex items-center gap-3">
+    <form
+      onSubmit={handleSend}
+      className="p-4 glass-panel border-t border-[var(--border)] flex items-center gap-2.5 z-10"
+    >
       <button
         type="button"
-        className="p-2.5 rounded-xl glass-input text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
+        className="p-2.5 rounded-xl glass-input text-[var(--icon-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+        aria-label="Add attachment"
       >
-        <Smile className="w-5 h-5" />
+        <Paperclip className="w-4 h-4" />
+      </button>
+
+      <button
+        type="button"
+        className="p-2.5 rounded-xl glass-input text-[var(--icon-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer hidden sm:flex"
+        aria-label="Add emoji"
+      >
+        <Smile className="w-4 h-4" />
       </button>
 
       <input
@@ -70,16 +89,19 @@ export function ChatInput({ conversationId }: ChatInputProps) {
           setContent(e.target.value);
           handleTyping();
         }}
+        onKeyDown={handleKeyDown}
         placeholder="Type a message..."
-        className="flex-1 py-2.5 px-4 rounded-xl glass-input text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none"
+        className="flex-1 py-2.5 px-4 rounded-xl glass-input text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
       />
 
       <button
         type="submit"
         disabled={!content.trim()}
-        className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 disabled:opacity-40 transition-colors shadow-xs cursor-pointer"
+        className="py-2.5 px-4 rounded-xl btn-primary font-medium text-xs flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-40 transition-all active:scale-98"
+        aria-label="Send message"
       >
-        <Send className="w-4 h-4" />
+        <span>Send</span>
+        <Send className="w-3.5 h-3.5" />
       </button>
     </form>
   );

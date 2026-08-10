@@ -32,11 +32,14 @@ class MessageListItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class PaginatedMessagesResponse(BaseModel):
+    items: list[MessageListItem]
+    next_cursor: str | None = None
+    has_more: bool = False
+
 class MessageUpdate(BaseModel):
     content:str = Field(min_length=1, max_length=4000)
 
 class EditMessageEvent(BaseModel):
     message_id: uuid.UUID
     content: str = Field(min_length=1, max_length=4000)
-
-

@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // We check for access_token or authorization header / cookie if set.
-  // Note: Client-side storage (localStorage) is also checked in auth thunks,
-  // but middleware provides initial route guard structure.
-  
+  // HttpOnly cookies (access_token) are automatically forwarded by the browser.
   return NextResponse.next();
 }
 

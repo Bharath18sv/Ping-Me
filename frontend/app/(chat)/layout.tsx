@@ -6,15 +6,14 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchMeThunk } from '@/features/auth.slice';
 import { fetchConversationsThunk } from '@/features/chat.slice';
 import { useSocket } from '@/hooks/useSocket';
-import { Sidebar } from '@/components/chat/Sidebar';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageSquare } from 'lucide-react';
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, isInitializing } = useAppSelector((state) => state.auth);
 
-  // Initialize Socket.IO event listeners
+  // Initialize Socket.IO real-time event listeners
   useSocket();
 
   useEffect(() => {
@@ -31,9 +30,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-zinc-100">
-        <Loader2 className="w-7 h-7 animate-spin mb-2" />
-        <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">Loading Ping-Me...</p>
+      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[var(--background)] text-[var(--foreground)] select-none">
+        <div className="p-3.5 rounded-2xl glass-card border border-[var(--border)] mb-3 shadow-xs animate-pulse">
+          <MessageSquare className="w-6 h-6 text-[var(--text-primary)]" />
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span>Connecting to Ping-Me...</span>
+        </div>
       </div>
     );
   }
@@ -41,11 +45,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#09090b] text-foreground">
-      <Sidebar />
-      <main className="flex-1 flex flex-col h-full bg-slate-100/50 dark:bg-zinc-950/40 relative">
-        {children}
-      </main>
+    <div className="h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
+      {children}
     </div>
   );
 }

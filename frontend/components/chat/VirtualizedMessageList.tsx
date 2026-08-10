@@ -67,14 +67,14 @@ export function VirtualizedMessageList({
       className="flex-1 overflow-y-auto p-4 space-y-1 relative"
     >
       {isLoadingMore && (
-        <div className="flex items-center justify-center py-2 text-indigo-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
+        <div className="flex items-center justify-center py-2 text-[var(--text-secondary)]">
+          <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-xs ml-2">Loading older messages...</span>
         </div>
       )}
 
       {messages.length === 0 && !isLoadingMore && (
-        <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+        <div className="h-full flex items-center justify-center text-[var(--text-tertiary)] text-sm font-medium select-none">
           No messages yet. Say hello!
         </div>
       )}

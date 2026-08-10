@@ -2,10 +2,8 @@ import { apiClient } from '@/lib/axios';
 import { LoginInput, SignupInput } from '@/schemas/auth.schema';
 import { UserResponse } from '@/schemas/user.schema';
 
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
+export interface AuthMessageResponse {
+  message: string;
 }
 
 export const authService = {
@@ -14,13 +12,18 @@ export const authService = {
     return res.data;
   },
 
-  async login(data: LoginInput): Promise<TokenResponse> {
-    const res = await apiClient.post<TokenResponse>('/auth/login', data);
+  async login(data: LoginInput): Promise<AuthMessageResponse> {
+    const res = await apiClient.post<AuthMessageResponse>('/auth/login', data);
+    return res.data;
+  },
+
+  async logout(): Promise<AuthMessageResponse> {
+    const res = await apiClient.post<AuthMessageResponse>('/auth/logout');
     return res.data;
   },
 
   async getMe(): Promise<UserResponse> {
-    const res = await apiClient.get<UserResponse>('/users/me');
+    const res = await apiClient.get<UserResponse>('/auth/me');
     return res.data;
   },
 

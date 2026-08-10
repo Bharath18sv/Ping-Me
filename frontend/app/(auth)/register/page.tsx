@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Mail, User, AtSign, ArrowRight } from 'lucide-react';
 import { signupSchema, SignupInput } from '@/schemas/auth.schema';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { signupThunk } from '@/features/auth.slice';
+import { signupThunk, clearAuthError } from '@/features/auth.slice';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { GoogleOAuthButton } from '@/components/auth/GoogleOAuthButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
@@ -25,6 +25,11 @@ export default function RegisterPage() {
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
   });
+
+  // Clear stale auth error when entering the Register page
+  useEffect(() => {
+    dispatch(clearAuthError());
+  }, [dispatch]);
 
   useEffect(() => {
     if (isAuthenticated) {
