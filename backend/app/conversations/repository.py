@@ -44,19 +44,20 @@ class ConversationRepository:
     async def get_conversations(db: AsyncSession, current_user_id: uuid.UUID):
         # we need participant twice - for current and other
         other = aliased(Participant)
-
         current_participant = aliased(Participant)
 
-        latest_message = (
-            # select latest message with max created_at timestamp
+        latest_message_subquery = (
             select(
-                Message.conversation_id,
-                # rename column from max_1 to the given 
-                func.max(Message.created_at).label("latest_created_at")
+                Message.id.label("message_id"),
+                Message.conversation_id.label("conversation_id"),
+                func.row_number()
+                .over(
+                    partition_by=Message.conversation_id,
+                    order_by=[Message.created_at.desc(), Message.id.desc()],
+                )
+                .label("rn"),
             )
-            # don't return deleted messages (they won't be counted in unread count either)
             .where(Message.deleted_at == None)
-            .group_by(Message.conversation_id)
             .subquery()
         )
 
@@ -84,6 +85,7 @@ class ConversationRepository:
             .group_by(Message.conversation_id)
             .subquery()
         )
+
         result = await db.execute(
             select(
                 Conversation, 
@@ -107,17 +109,13 @@ class ConversationRepository:
                 User.id == other.user_id
             )
             .outerjoin(
-                latest_message,
-                # .c means the columns in the subquery
-                latest_message.c.conversation_id == Conversation.id
+                latest_message_subquery,
+                (latest_message_subquery.c.conversation_id == Conversation.id)
+                & (latest_message_subquery.c.rn == 1),
             )
             .outerjoin(
                 last_message,
-                (
-                    last_message.conversation_id == latest_message.c.conversation_id
-                ) & (
-                    last_message.created_at == latest_message.c.latest_created_at
-                ),
+                last_message.id == latest_message_subquery.c.message_id,
             )
             .outerjoin(
                 unread_counts,

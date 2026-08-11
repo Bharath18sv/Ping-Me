@@ -1,13 +1,16 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { ConversationListItem } from '@/schemas/conversation.schema';
-import { MessageItem } from '@/schemas/message.schema';
-import { chatService } from '@/services/chat.service';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { ConversationListItem } from "@/schemas/conversation.schema";
+import { MessageItem } from "@/schemas/message.schema";
+import { chatService } from "@/services/chat.service";
 
 interface ChatState {
   conversations: ConversationListItem[];
   activeConversationId: string | null;
   messages: Record<string, MessageItem[]>; // conversationId -> MessageItem[] (chronological order)
-  pagination: Record<string, { nextCursor: string | null; hasMore: boolean; isLoading: boolean }>;
+  pagination: Record<
+    string,
+    { nextCursor: string | null; hasMore: boolean; isLoading: boolean }
+  >;
   isLoadingConversations: boolean;
   error: string | null;
 }
@@ -21,31 +24,54 @@ const initialState: ChatState = {
   error: null,
 };
 
-export const fetchConversationsThunk = createAsyncThunk('chat/fetchConversations', async (_, { rejectWithValue }) => {
-  try {
-    return await chatService.getConversations();
-  } catch (err: any) {
-    return rejectWithValue(err.response?.data?.detail || 'Failed to load conversations');
-  }
-});
+export const fetchConversationsThunk = createAsyncThunk(
+  "chat/fetchConversations",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await chatService.getConversations();
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.detail || "Failed to load conversations",
+      );
+    }
+  },
+);
 
 export const fetchMessagesThunk = createAsyncThunk(
-  'chat/fetchMessages',
-  async ({ conversationId, cursor }: { conversationId: string; cursor?: string | null }, { rejectWithValue }) => {
+  "chat/fetchMessages",
+  async (
+    {
+      conversationId,
+      cursor,
+    }: { conversationId: string; cursor?: string | null },
+    { rejectWithValue },
+  ) => {
     try {
       const res = await chatService.getMessages(conversationId, cursor);
       return { conversationId, ...res };
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.detail || 'Failed to load messages');
+      return rejectWithValue(
+        err.response?.data?.detail || "Failed to load messages",
+      );
     }
-  }
+  },
 );
 
 export const sendMessageThunk = createAsyncThunk(
-  'chat/sendMessage',
+  "chat/sendMessage",
   async (
-    { conversationId, content, tempId, currentUserId }: { conversationId: string; content: string; tempId: string; currentUserId: string },
-    { rejectWithValue, dispatch }
+    {
+      conversationId,
+      content,
+      tempId,
+      currentUserId,
+    }: {
+      conversationId: string;
+      content: string;
+      tempId: string;
+      currentUserId: string;
+    },
+    { rejectWithValue, dispatch },
   ) => {
     // Optimistic message addition
     const optimisticMessage: MessageItem = {
@@ -62,17 +88,51 @@ export const sendMessageThunk = createAsyncThunk(
     dispatch(addOptimisticMessage(optimisticMessage));
 
     try {
-      const realMessage = await chatService.sendMessage(conversationId, content);
+      const realMessage = await chatService.sendMessage(
+        conversationId,
+        content,
+      );
       return { tempId, realMessage };
     } catch (err: any) {
       dispatch(removeOptimisticMessage({ conversationId, tempId }));
-      return rejectWithValue(err.response?.data?.detail || 'Failed to send message');
+      return rejectWithValue(
+        err.response?.data?.detail || "Failed to send message",
+      );
     }
-  }
+  },
 );
 
+function updateConversationPreviewHelper(
+  state: ChatState,
+  msg: MessageItem,
+  options?: { isIncoming?: boolean; currentUserId?: string }
+) {
+  const convId = msg.conversation_id;
+  const convIndex = state.conversations.findIndex((c) => c.id === convId);
+
+  if (convIndex !== -1) {
+    const conv = state.conversations[convIndex];
+    conv.last_message = msg;
+    conv.updated_at = msg.created_at;
+
+    if (options?.isIncoming) {
+      const isSelfMessage =
+        options.currentUserId && msg.sender_id === options.currentUserId;
+      if (!isSelfMessage && state.activeConversationId !== convId) {
+        conv.unread_count = (conv.unread_count || 0) + 1;
+      }
+    }
+
+    // Reorder: move updated conversation to top of list
+    if (convIndex > 0) {
+      state.conversations.splice(convIndex, 1);
+      state.conversations.unshift(conv);
+    }
+  }
+}
+
 const chatSlice = createSlice({
-  name: 'chat',
+  name: "chat",
   initialState,
   reducers: {
     setActiveConversationId(state, action: PayloadAction<string | null>) {
@@ -84,11 +144,17 @@ const chatSlice = createSlice({
         state.messages[msg.conversation_id] = [];
       }
       state.messages[msg.conversation_id].push(msg);
+      updateConversationPreviewHelper(state, msg);
     },
-    removeOptimisticMessage(state, action: PayloadAction<{ conversationId: string; tempId: string }>) {
+    removeOptimisticMessage(
+      state,
+      action: PayloadAction<{ conversationId: string; tempId: string }>,
+    ) {
       const { conversationId, tempId } = action.payload;
       if (state.messages[conversationId]) {
-        state.messages[conversationId] = state.messages[conversationId].filter((m) => m.temp_id !== tempId && m.id !== tempId);
+        state.messages[conversationId] = state.messages[conversationId].filter(
+          (m) => m.temp_id !== tempId && m.id !== tempId,
+        );
       }
     },
     handleIncomingMessage(state, action: PayloadAction<MessageItem>) {
@@ -100,22 +166,16 @@ const chatSlice = createSlice({
       }
 
       // Check if message already exists or if it replaces an optimistic message
-      const existingIdx = state.messages[convId].findIndex((m) => m.id === msg.id || (msg.temp_id && m.temp_id === msg.temp_id));
+      const existingIdx = state.messages[convId].findIndex(
+        (m) => m.id === msg.id || (msg.temp_id && m.temp_id === msg.temp_id),
+      );
       if (existingIdx !== -1) {
         state.messages[convId][existingIdx] = msg;
       } else {
         state.messages[convId].push(msg);
       }
 
-      // Update conversation last message & unread count
-      const conv = state.conversations.find((c) => c.id === convId);
-      if (conv) {
-        conv.last_message = msg;
-        conv.updated_at = msg.created_at;
-        if (state.activeConversationId !== convId) {
-          conv.unread_count += 1;
-        }
-      }
+      updateConversationPreviewHelper(state, msg, { isIncoming: true });
     },
     clearUnreadCount(state, action: PayloadAction<string>) {
       const conv = state.conversations.find((c) => c.id === action.payload);
@@ -123,7 +183,14 @@ const chatSlice = createSlice({
         conv.unread_count = 0;
       }
     },
-    handleMessageRead(state, action: PayloadAction<{ conversation_id: string; message_ids: string[]; read_by: string }>) {
+    handleMessageRead(
+      state,
+      action: PayloadAction<{
+        conversation_id: string;
+        message_ids: string[];
+        read_by: string;
+      }>,
+    ) {
       const { conversation_id, message_ids } = action.payload;
       const msgs = state.messages[conversation_id];
       if (msgs && message_ids && message_ids.length > 0) {
@@ -136,10 +203,15 @@ const chatSlice = createSlice({
       }
     },
     addConversation(state, action: PayloadAction<ConversationListItem>) {
-      const exists = state.conversations.some((c) => c.id === action.payload.id);
+      const exists = state.conversations.some(
+        (c) => c.id === action.payload.id,
+      );
       if (!exists) {
         state.conversations.unshift(action.payload);
       }
+    },
+    updateConversationLastMessage(state, action: PayloadAction<MessageItem>) {
+      updateConversationPreviewHelper(state, action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -159,14 +231,18 @@ const chatSlice = createSlice({
       .addCase(fetchMessagesThunk.pending, (state, action) => {
         const convId = action.meta.arg.conversationId;
         if (!state.pagination[convId]) {
-          state.pagination[convId] = { nextCursor: null, hasMore: true, isLoading: true };
+          state.pagination[convId] = {
+            nextCursor: null,
+            hasMore: true,
+            isLoading: true,
+          };
         } else {
           state.pagination[convId].isLoading = true;
         }
       })
       .addCase(fetchMessagesThunk.fulfilled, (state, action) => {
         const { conversationId, items, next_cursor, has_more } = action.payload;
-        
+
         // History endpoint returns newest -> oldest. We prepend history items to existing list.
         const safeItems = items || [];
         const reversedItems = [...safeItems].reverse();
@@ -179,7 +255,8 @@ const chatSlice = createSlice({
 
         // Sort chronologically by created_at
         const merged = Array.from(messageMap.values()).sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
         );
 
         state.messages[conversationId] = merged;
@@ -192,7 +269,11 @@ const chatSlice = createSlice({
       .addCase(fetchMessagesThunk.rejected, (state, action) => {
         const convId = action.meta.arg.conversationId;
         if (!state.pagination[convId]) {
-          state.pagination[convId] = { nextCursor: null, hasMore: false, isLoading: false };
+          state.pagination[convId] = {
+            nextCursor: null,
+            hasMore: false,
+            isLoading: false,
+          };
         } else {
           state.pagination[convId].isLoading = false;
         }
@@ -201,11 +282,14 @@ const chatSlice = createSlice({
         const { tempId, realMessage } = action.payload;
         const convId = realMessage.conversation_id;
         if (state.messages[convId]) {
-          const idx = state.messages[convId].findIndex((m) => m.id === tempId || m.temp_id === tempId);
+          const idx = state.messages[convId].findIndex(
+            (m) => m.id === tempId || m.temp_id === tempId,
+          );
           if (idx !== -1) {
             state.messages[convId][idx] = realMessage;
           }
         }
+        updateConversationPreviewHelper(state, realMessage);
       });
   },
 });
@@ -218,6 +302,7 @@ export const {
   clearUnreadCount,
   handleMessageRead,
   addConversation,
+  updateConversationLastMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
