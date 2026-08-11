@@ -39,8 +39,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('conversation_id', 'user_id', name='uq_conversation_user')
     )
-    op.drop_index(op.f('idx_users_name_trgm'), table_name='users', postgresql_ops={'name': 'gin_trgm_ops'}, postgresql_using='gin')
-    op.drop_index(op.f('idx_users_username_trgm'), table_name='users', postgresql_ops={'username': 'gin_trgm_ops'}, postgresql_using='gin')
+    op.drop_index(op.f('idx_users_name_trgm'), table_name='users', postgresql_ops={'name': 'gin_trgm_ops'}, postgresql_using='gin', if_exists=True)
+    op.drop_index(op.f('idx_users_username_trgm'), table_name='users', postgresql_ops={'username': 'gin_trgm_ops'}, postgresql_using='gin', if_exists=True)
     # ### end Alembic commands ###
 
 
