@@ -1,9 +1,4 @@
-from app.db.Base import Base  # fallback import if Base.py exists
-try:
-    from app.db.database import Base
-except ImportError:
-    pass
-
+from app.db.database import Base
 from app.db.models.user import User
 from app.db.models.conversation import Conversation
 from app.db.models.message import Message
