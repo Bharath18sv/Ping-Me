@@ -28,15 +28,17 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
             v = v.strip()
-            if v.startswith("[") and v.endswith("]"):
+            # Strip Railway double-escaping (e.g. [\"http://...\"])
+            cleaned_v = v.replace('\\"', '"').replace("\\'", "'")
+            if cleaned_v.startswith("[") and cleaned_v.endswith("]"):
                 try:
-                    v = json.loads(v)
+                    v = json.loads(cleaned_v)
                 except Exception:
-                    v = [item.strip(" \"'") for item in v[1:-1].split(",") if item.strip()]
+                    v = [item.strip(" \"'\\") for item in cleaned_v[1:-1].split(",") if item.strip()]
             else:
-                v = [item.strip(" \"'") for item in v.split(",") if item.strip()]
+                v = [item.strip(" \"'\\") for item in v.split(",") if item.strip()]
         if isinstance(v, list):
-            return [origin.rstrip("/") for origin in v if isinstance(origin, str) and origin.strip()]
+            return [origin.strip(" \"'\\").rstrip("/") for origin in v if isinstance(origin, str) and origin.strip()]
         return v
 
     class Config:
