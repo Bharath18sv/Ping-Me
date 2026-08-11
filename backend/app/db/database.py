@@ -4,6 +4,11 @@ from app.core.config import settings
 
 raw_url = (settings.DATABASE_URL or "").strip().strip('"\'')
 
+if not raw_url or raw_url.startswith("${{"):
+    raise RuntimeError(
+        "Invalid DATABASE_URL. Please select + New Variable -> Add Reference in Railway to link your Postgres DATABASE_URL or paste your Postgres connection string."
+    )
+
 if raw_url.startswith("postgres://"):
     ASYNC_DATABASE_URL = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
 elif raw_url.startswith("postgresql://"):
