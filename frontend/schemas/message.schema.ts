@@ -11,6 +11,7 @@ export const messageItemSchema = z.object({
   deleted_at: z.string().nullable().optional(),
   created_at: z.string(),
   temp_id: z.string().optional(), // for optimistic updates
+  is_read: z.boolean().optional(),
 });
 
 export type MessageItem = z.infer<typeof messageItemSchema>;

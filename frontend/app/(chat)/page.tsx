@@ -1,27 +1,44 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { fetchMessagesThunk } from '@/features/chat.slice';
+import { fetchMessagesThunk, clearUnreadCount } from '@/features/chat.slice';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { VirtualizedMessageList } from '@/components/chat/VirtualizedMessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
-import { MessageSquare } from 'lucide-react';
+import { ConversationDetails } from '@/components/chat/ConversationDetails';
+import { EmptyConversation } from '@/components/chat/EmptyConversation';
+import { Sidebar } from '@/components/chat/Sidebar';
+import { getSocket } from '@/lib/socket';
+import { SOCKET_EVENTS } from '@/constants/socket-events';
 
 export default function ChatDashboardPage() {
   const dispatch = useAppDispatch();
   const { activeConversationId, conversations, messages, pagination } = useAppSelector((state) => state.chat);
   const currentUser = useAppSelector((state) => state.auth.user);
 
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const activeMessages = activeConversationId ? messages[activeConversationId] || [] : [];
   const pageState = activeConversationId ? pagination[activeConversationId] : null;
 
   useEffect(() => {
-    if (activeConversationId && (!messages[activeConversationId] || messages[activeConversationId].length === 0)) {
+    if (!activeConversationId) return;
+
+    // Fetch history if not loaded yet for this conversation
+    if (!pagination[activeConversationId]) {
       dispatch(fetchMessagesThunk({ conversationId: activeConversationId }));
     }
-  }, [activeConversationId, dispatch, messages]);
+
+    // Clear unread count & inform backend of read status
+    dispatch(clearUnreadCount(activeConversationId));
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit(SOCKET_EVENTS.CONVERSATION_READ, { conversation_id: activeConversationId });
+    }
+  }, [activeConversationId, dispatch, pagination]);
 
   const handleLoadMore = useCallback(() => {
     if (activeConversationId && pageState?.nextCursor && !pageState.isLoading) {
@@ -29,35 +46,50 @@ export default function ChatDashboardPage() {
     }
   }, [activeConversationId, pageState, dispatch]);
 
-  if (!activeConversationId || !activeConversation) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center select-none">
-        <div className="p-4 rounded-2xl bg-slate-200/80 dark:bg-zinc-800/80 text-slate-900 dark:text-zinc-100 border border-slate-300/50 dark:border-zinc-700 mb-3 shadow-xs">
-          <MessageSquare className="w-8 h-8" />
-        </div>
-        <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">Select a conversation</h2>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-xs mt-1">
-          Choose a chat from the sidebar or click "New" to start messaging.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <ChatHeader conversation={activeConversation} />
+    <div className="flex h-full w-full overflow-hidden bg-[var(--background)] relative">
+      {/* Region 1: Conversations Sidebar */}
+      <Sidebar
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onSelectMobileConversation={() => setIsMobileSidebarOpen(false)}
+      />
 
-      {currentUser && (
-        <VirtualizedMessageList
-          messages={activeMessages}
-          currentUserId={currentUser.id}
-          hasMore={pageState?.hasMore ?? false}
-          isLoadingMore={pageState?.isLoading ?? false}
-          onLoadMore={handleLoadMore}
+      {/* Region 2: Central Active Conversation Panel */}
+      <main className="flex-1 flex flex-col h-full min-w-0 bg-[var(--surface-panel)] relative overflow-hidden">
+        {activeConversationId && activeConversation ? (
+          <>
+            <ChatHeader
+              conversation={activeConversation}
+              onToggleSidebar={() => setIsMobileSidebarOpen(true)}
+              onToggleDetails={() => setIsDetailsOpen((prev) => !prev)}
+              isDetailsOpen={isDetailsOpen}
+            />
+
+            {currentUser && (
+              <VirtualizedMessageList
+                messages={activeMessages}
+                currentUserId={currentUser.id}
+                hasMore={pageState?.hasMore ?? false}
+                isLoadingMore={pageState?.isLoading ?? false}
+                onLoadMore={handleLoadMore}
+              />
+            )}
+
+            <ChatInput conversationId={activeConversationId} />
+          </>
+        ) : (
+          <EmptyConversation />
+        )}
+      </main>
+
+      {/* Region 3: Right Details & Profile Panel */}
+      {activeConversationId && activeConversation && isDetailsOpen && (
+        <ConversationDetails
+          conversation={activeConversation}
+          onClose={() => setIsDetailsOpen(false)}
         />
       )}
-
-      <ChatInput conversationId={activeConversationId} />
     </div>
   );
 }

@@ -7,7 +7,13 @@ from app.auth.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.db.models.user import User
 
-from app.messages.schemas import MessageCreate, MessageResponse, MessageListItem, MessageUpdate
+from app.messages.schemas import (
+    MessageCreate,
+    MessageResponse,
+    MessageListItem,
+    PaginatedMessagesResponse,
+    MessageUpdate,
+)
 from app.messages.service import create_message, get_messages, edit_message, delete_message
 
 router = APIRouter()
@@ -26,7 +32,7 @@ async def send_message(
         content = payload.content
     )
 
-@router.get("/conversations/{conversation_id}/messages", response_model=list[MessageListItem])
+@router.get("/conversations/{conversation_id}/messages", response_model=PaginatedMessagesResponse)
 async def list_messages(
     conversation_id:uuid.UUID,
     cursor:uuid.UUID | None = Query(default=None),

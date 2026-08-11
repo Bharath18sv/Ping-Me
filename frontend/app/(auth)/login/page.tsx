@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { loginSchema, LoginInput } from '@/schemas/auth.schema';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { loginThunk } from '@/features/auth.slice';
+import { loginThunk, clearAuthError } from '@/features/auth.slice';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { GoogleOAuthButton } from '@/components/auth/GoogleOAuthButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
@@ -25,6 +25,11 @@ export default function LoginPage() {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  // Clear stale auth error when entering the Login page
+  useEffect(() => {
+    dispatch(clearAuthError());
+  }, [dispatch]);
 
   useEffect(() => {
     if (isAuthenticated) {

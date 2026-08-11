@@ -8,8 +8,7 @@ manager = socketio.AsyncRedisManager(
 sio = socketio.AsyncServer(
     async_mode="asgi",
     client_manager=manager,
-    # add later
-    cors_allowed_origins=[],
+    cors_allowed_origins=settings.CORS_ORIGINS,
     logger=True,
     engineio_logger=True
 )

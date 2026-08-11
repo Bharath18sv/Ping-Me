@@ -28,20 +28,17 @@ class MessageRepository:
         return message
     
     async def get_messages(
-        db:AsyncSession, 
+        db: AsyncSession, 
         conversation_id: uuid.UUID, 
-        cursor:uuid.UUID | None=None,
-        limit:int = 50):
-
-        # SQL Alchemy query to get all the messages of this conversation
+        cursor: uuid.UUID | None = None,
+        limit: int = 50
+    ):
         stmt = (
             select(Message)
             .where(Message.conversation_id == conversation_id)
         )
 
         if cursor:
-            # db.execute returns the objects which contains rows from db
-            # select the cursor message (the message from which we need to retrieve the old messages)
             cursor_result = await db.execute(
                 select(Message)
                 .where(
@@ -49,27 +46,35 @@ class MessageRepository:
                     Message.conversation_id == conversation_id
                 )
             )
-
-            # return only one row or none
             cursor_message = cursor_result.scalar_one_or_none()
 
-            # if cursor message is found, then select all the messages before the cursor message
             if cursor_message:
                 stmt = stmt.where(
                     Message.created_at < cursor_message.created_at
                 )
 
-        # latest message first
+        # Fetch limit + 1 to determine if more items exist for cursor pagination
         stmt = (
             stmt.order_by(desc(Message.created_at))
-            .limit(limit)
+            .limit(limit + 1)
         )
 
         result = await db.execute(stmt)
+        messages = list(result.scalars().all())
 
-        # scalars() extract first column from each row
-        # all() converts ScalarResult into a python list
-        return result.scalars().all()
+        has_more = len(messages) > limit
+        if has_more:
+            items = messages[:limit]
+            next_cursor = str(items[-1].id)
+        else:
+            items = messages
+            next_cursor = None
+
+        return {
+            "items": items,
+            "next_cursor": next_cursor,
+            "has_more": has_more,
+        }
     
     async def get_message_by_id(
         db:AsyncSession,

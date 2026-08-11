@@ -123,6 +123,18 @@ const chatSlice = createSlice({
         conv.unread_count = 0;
       }
     },
+    handleMessageRead(state, action: PayloadAction<{ conversation_id: string; message_ids: string[]; read_by: string }>) {
+      const { conversation_id, message_ids } = action.payload;
+      const msgs = state.messages[conversation_id];
+      if (msgs && message_ids && message_ids.length > 0) {
+        const idSet = new Set(message_ids);
+        msgs.forEach((m) => {
+          if (idSet.has(m.id)) {
+            m.is_read = true;
+          }
+        });
+      }
+    },
     addConversation(state, action: PayloadAction<ConversationListItem>) {
       const exists = state.conversations.some((c) => c.id === action.payload.id);
       if (!exists) {
@@ -156,7 +168,8 @@ const chatSlice = createSlice({
         const { conversationId, items, next_cursor, has_more } = action.payload;
         
         // History endpoint returns newest -> oldest. We prepend history items to existing list.
-        const reversedItems = [...items].reverse();
+        const safeItems = items || [];
+        const reversedItems = [...safeItems].reverse();
         const existingMessages = state.messages[conversationId] || [];
 
         // Deduplicate messages by id
@@ -172,13 +185,15 @@ const chatSlice = createSlice({
         state.messages[conversationId] = merged;
         state.pagination[conversationId] = {
           nextCursor: next_cursor ?? null,
-          hasMore: has_more,
+          hasMore: has_more ?? false,
           isLoading: false,
         };
       })
       .addCase(fetchMessagesThunk.rejected, (state, action) => {
         const convId = action.meta.arg.conversationId;
-        if (state.pagination[convId]) {
+        if (!state.pagination[convId]) {
+          state.pagination[convId] = { nextCursor: null, hasMore: false, isLoading: false };
+        } else {
           state.pagination[convId].isLoading = false;
         }
       })
@@ -201,6 +216,7 @@ export const {
   removeOptimisticMessage,
   handleIncomingMessage,
   clearUnreadCount,
+  handleMessageRead,
   addConversation,
 } = chatSlice.actions;
 

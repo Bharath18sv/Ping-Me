@@ -6,13 +6,10 @@ let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> => {
   if (!socket) {
     const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000';
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
     socket = io(SOCKET_URL, {
       autoConnect: false,
-      auth: {
-        token: token ? `Bearer ${token}` : '',
-      },
+      withCredentials: true,
       transports: ['websocket', 'polling'],
     });
   }
@@ -21,12 +18,6 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
 
 export const connectSocket = () => {
   const s = getSocket();
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      s.auth = { token: `Bearer ${token}` };
-    }
-  }
   if (!s.connected) {
     s.connect();
   }

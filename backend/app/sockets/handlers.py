@@ -24,17 +24,44 @@ socket_repo = SocketRepository(redis_client)
 
 logger = logging.getLogger(__name__)
 
-@sio.event
-async def connect(sid, environ, auth):
-    if auth is None or "token" not in auth:
-        raise ConnectionRefusedError("Missing Token")
+from http.cookies import SimpleCookie
 
-    user_id = authenticate_socket(auth["token"])
+def _extract_token_from_environ(environ: dict) -> str:
+    cookie_header = environ.get("HTTP_COOKIE")
+    if not cookie_header:
+        headers = environ.get("headers") or environ.get("asgi.scope", {}).get("headers", [])
+        for item in headers:
+            if isinstance(item, (tuple, list)) and len(item) == 2:
+                name, value = item
+                header_name = name.decode("utf-8") if isinstance(name, bytes) else str(name)
+                if header_name.lower() == "cookie":
+                    cookie_header = value.decode("utf-8") if isinstance(value, bytes) else str(value)
+                    break
+
+    if not cookie_header:
+        raise ConnectionRefusedError("Authentication required")
+
+    cookie = SimpleCookie()
+    cookie.load(cookie_header)
+
+    if "access_token" not in cookie:
+        raise ConnectionRefusedError("Authentication required")
+
+    token = cookie["access_token"].value
+    if not token:
+        raise ConnectionRefusedError("Authentication required")
+
+    return token
+
+@sio.event
+async def connect(sid, environ, auth=None):
+    token = _extract_token_from_environ(environ)
+    user_id = authenticate_socket(token)
 
     await sio.save_session(
         sid,
         {
-            "user_id" : user_id
+            "user_id": user_id
         }
     )
 
@@ -46,12 +73,12 @@ async def connect(sid, environ, auth):
 
     socket_count = await socket_repo.socket_count(str(user_id))
 
-    # only emit online if the user is online for the first time, if the count is more than 1, no need to emit
+    # only emit online if the user is online for the first time
     if socket_count == 1:
         await sio.emit(
             "user_online",
             {
-                "user_id" : str(user_id)
+                "user_id": str(user_id)
             }
         )
 
@@ -68,26 +95,28 @@ async def connect(sid, environ, auth):
 @sio.event
 async def disconnect(sid):
     session = await sio.get_session(sid)
+    if not session or "user_id" not in session:
+        logger.info("Socket disconnected without valid session: %s", sid)
+        return
 
-    socket_count = await socket_repo.socket_count(
-        str(session["user_id"])
-    )
+    user_id = str(session["user_id"])
 
+    # 1. Remove socket from redis FIRST
+    await socket_repo.remove_socket(user_id, sid)
+
+    # 2. Check remaining socket count
+    socket_count = await socket_repo.socket_count(user_id)
+
+    # 3. If remaining count is 0, emit user_offline
     if socket_count == 0:
         await sio.emit(
             "user_offline",
             {
-                "user_id": str(session["user_id"]),
+                "user_id": user_id,
             },
         )
 
-    # remove socket from redis
-    await socket_repo.remove_socket(
-        str(session.get("user_id")),
-        sid
-    )
-
-    logger.info("Socket disconnected: %s (%s)", sid, session.get("user_id"))
+    logger.info("Socket disconnected: %s (%s)", sid, user_id)
 
 @sio.event
 async def message_send(sid, data):
@@ -174,6 +203,7 @@ async def typing_stop(sid, data):
     )
 
 from app.conversations.socket_schemas import ConversationReadEvent
+from app.conversations.service import mark_conversation_as_read
 @sio.event
 async def conversation_read(sid, data):
     session = await sio.get_session(sid)

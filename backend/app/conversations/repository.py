@@ -55,7 +55,7 @@ class ConversationRepository:
                 func.max(Message.created_at).label("latest_created_at")
             )
             # don't return deleted messages (they won't be counted in unread count either)
-            .where(Message.deleted_at.is_(None))
+            .where(Message.deleted_at == None)
             .group_by(Message.conversation_id)
             .subquery()
         )
@@ -73,11 +73,11 @@ class ConversationRepository:
                 current_participant.conversation_id == Message.conversation_id,
             )
             .where(
-                Message.deleted_at.is_(None),
+                Message.deleted_at == None,
                 current_participant.user_id == current_user_id,
                 Message.sender_id != current_user_id,
                 or_(
-                    current_participant.last_read_at.is_(None),
+                    current_participant.last_read_at == None,
                     Message.created_at > current_participant.last_read_at,
                 ),
             )
@@ -126,7 +126,7 @@ class ConversationRepository:
             .where(
                 Participant.user_id == current_user_id,
                 other.user_id != current_user_id,
-                Conversation.is_group.is_(False)
+                Conversation.is_group == False
             )
             .order_by(Conversation.updated_at.desc())
         )
@@ -134,12 +134,11 @@ class ConversationRepository:
         return result.all()
 
     async def mark_as_read(
-        db:AsyncSession, 
-        conversation_id:uuid.UUID, 
-        user_id:uuid.UUID
+        db: AsyncSession,
+        conversation_id: uuid.UUID,
+        user_id: uuid.UUID,
     ):
-        #get the participant
-        participant = await db.execute(
+        participant_result = await db.execute(
             select(Participant)
             .where(
                 Participant.user_id == user_id,
@@ -147,35 +146,47 @@ class ConversationRepository:
             )
         )
 
-        participant = participant.scalar_one()
-        
-        # fetch unread messages
-        result = await db.execute(
-            select(Message.id)
-            .where(
-                Message.conversation_id == conversation_id,
-                Message.sender_id != user_id,
-                (
-                    (participant.last_read_at.is_(None)) 
-                    | Message.created_at > participant.last_read_at
+        participant = participant_result.scalar_one_or_none()
+
+        if not participant:
+            raise HTTPException(
+            status_code=403,
+            detail="You are not a participant of this conversation",
+        )
+
+        if participant.last_read_at is None:
+            result = await db.execute(
+                select(Message.id)
+                .where(
+                    Message.conversation_id == conversation_id,
+                    Message.deleted_at.is_(None),
+                    Message.sender_id != user_id,
                 )
             )
-        )
-        
+        else:
+            result = await db.execute(
+                select(Message.id)
+                .where(
+                    Message.conversation_id == conversation_id,
+                    Message.deleted_at.is_(None),
+                    Message.sender_id != user_id,
+                    Message.created_at > participant.last_read_at,
+                )
+            )
+
         message_ids = result.scalars().all()
-        
-        # update last read for the conversation for the user who is marking as read
+
         await db.execute(
             update(Participant)
             .where(
                 Participant.conversation_id == conversation_id,
-                Participant.user_id == user_id
+                Participant.user_id == user_id,
             )
             .values(last_read_at=func.now())
         )
 
         await db.commit()
-        # message ids used for marking msgs as read
+
         return message_ids
     
     async def get_conversation_by_id(

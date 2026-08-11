@@ -3,8 +3,8 @@ import { MessageItem } from '@/schemas/message.schema';
 export interface ServerToClientEvents {
   message_new: (payload: MessageItem) => void;
   typing: (payload: { conversation_id: string; user_id: string; is_typing: boolean }) => void;
-  message_read: (payload: { conversation_id: string; message_id: string; user_id: string }) => void;
-  messages_delivered: (payload: { conversation_id: string; user_id: string }) => void;
+  message_read: (payload: { conversation_id: string; message_ids: string[]; read_by: string }) => void;
+  messages_delivered: (payload: { conversation_id: string; message_ids: string[]; delivered_to: string }) => void;
   user_online: (payload: { user_id: string }) => void;
   user_offline: (payload: { user_id: string }) => void;
 }
