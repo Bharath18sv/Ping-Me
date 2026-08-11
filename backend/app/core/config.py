@@ -1,7 +1,7 @@
 import json
 from typing import List, Union
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -24,6 +24,11 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
+
     @field_validator("CORS_ORIGINS", mode="before")
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
@@ -40,10 +45,6 @@ class Settings(BaseSettings):
         if isinstance(v, list):
             return [origin.strip(" \"'\\").rstrip("/") for origin in v if isinstance(origin, str) and origin.strip()]
         return v
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 settings = Settings()
