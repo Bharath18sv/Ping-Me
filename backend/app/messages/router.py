@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.db.models.user import User
+from app.sockets.server import sio
 
 from app.messages.schemas import (
     MessageCreate,
@@ -23,22 +24,32 @@ async def send_message(
     conversation_id: uuid.UUID,
     payload: MessageCreate,
     db: AsyncSession = Depends(get_db),
-    current_user:User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    return await create_message(
+    message = await create_message(
         db=db,
-        conversation_id = conversation_id,
-        sender_id = current_user.id,
-        content = payload.content
+        conversation_id=conversation_id,
+        sender_id=current_user.id,
+        content=payload.content
     )
+    
+    response = MessageResponse.model_validate(message)
+    
+    await sio.emit(
+        "message_new",
+        response.model_dump(mode="json"),
+        room=f"conversation:{conversation_id}"
+    )
+
+    return response
 
 @router.get("/conversations/{conversation_id}/messages", response_model=PaginatedMessagesResponse)
 async def list_messages(
-    conversation_id:uuid.UUID,
-    cursor:uuid.UUID | None = Query(default=None),
-    limit:int = Query(default=50,ge=1,le=100),
-    db:AsyncSession = Depends(get_db),
-    current_user:User = Depends(get_current_user),
+    conversation_id: uuid.UUID,
+    cursor: uuid.UUID | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return await get_messages(
         db=db,
@@ -47,7 +58,7 @@ async def list_messages(
         cursor=cursor,
         limit=limit
     )
-    
+
 @router.patch(
     "/messages/{message_id}",
     response_model=MessageResponse,

@@ -1,10 +1,18 @@
-import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
-import { SOCKET_EVENTS } from '@/constants/socket-events';
-import { handleIncomingMessage, handleMessageRead } from '@/features/chat.slice';
-import { setUserOnline, setUserOffline, setTypingStatus } from '@/features/presence.slice';
-import { MessageItem } from '@/schemas/message.schema';
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import { SOCKET_EVENTS } from "@/constants/socket-events";
+import {
+  handleIncomingMessage,
+  handleMessageRead,
+} from "@/features/chat.slice";
+import {
+  setUserOnline,
+  setUserOffline,
+  setTypingStatus,
+  setOnlineUsers
+} from "@/features/presence.slice";
+import { MessageItem } from "@/schemas/message.schema";
 
 export const useSocket = () => {
   const dispatch = useAppDispatch();
@@ -19,16 +27,32 @@ export const useSocket = () => {
     connectSocket();
     const socket = getSocket();
 
+    // message events
     const onMessageNew = (payload: MessageItem) => {
       dispatch(handleIncomingMessage(payload));
     };
 
-    const onMessageRead = (payload: { conversation_id: string; message_ids: string[]; read_by: string }) => {
+    const onMessageRead = (payload: {
+      conversation_id: string;
+      message_ids: string[];
+      read_by: string;
+    }) => {
       dispatch(handleMessageRead(payload));
     };
 
-    const onTyping = (payload: { conversation_id: string; user_id: string; is_typing: boolean }) => {
+    // typing
+    const onTyping = (payload: {
+      conversation_id: string;
+      user_id: string;
+      is_typing: boolean;
+    }) => {
       dispatch(setTypingStatus(payload));
+    };
+
+    // presence
+
+    const onPresenceSync = (payload: { user_ids: string[] }) => {
+      dispatch(setOnlineUsers(payload.user_ids));
     };
 
     const onUserOnline = (payload: { user_id: string }) => {

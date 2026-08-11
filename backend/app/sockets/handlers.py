@@ -20,6 +20,7 @@ from app.conversations.repository import ConversationRepository
 
 from app.db.database import AsyncSessionLocal
 
+
 socket_repo = SocketRepository(redis_client)
 
 logger = logging.getLogger(__name__)
@@ -65,23 +66,39 @@ async def connect(sid, environ, auth=None):
         }
     )
 
+    user_id_str = str(user_id)
+
     # add socket to redis
     await socket_repo.add_socket(
-        str(user_id),
+        user_id_str,
         sid
     )
 
-    socket_count = await socket_repo.socket_count(str(user_id))
+    socket_count = await socket_repo.socket_count(user_id_str)
 
+    # Send current presence state to this socket
+    online_user_ids = await socket_repo.get_online_users()
+
+    await sio.emit(
+        "presence_sync",
+        {
+            "user_ids":online_user_ids
+        },
+        to=sid
+    )
+
+    # Tell other clients this user came online
     # only emit online if the user is online for the first time
     if socket_count == 1:
         await sio.emit(
             "user_online",
             {
-                "user_id": str(user_id)
-            }
+                "user_id": user_id_str
+            },
+            skip_sid=sid
         )
 
+    # join conversation rooms
     async with AsyncSessionLocal() as db:
         conversation_ids = await ConversationRepository.get_user_conversation_ids(db, user_id)
 
@@ -94,7 +111,9 @@ async def connect(sid, environ, auth=None):
 
 @sio.event
 async def disconnect(sid):
+
     session = await sio.get_session(sid)
+    
     if not session or "user_id" not in session:
         logger.info("Socket disconnected without valid session: %s", sid)
         return
