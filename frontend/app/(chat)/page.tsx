@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchMessagesThunk, clearUnreadCount } from '@/features/chat.slice';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { VirtualizedMessageList } from '@/components/chat/VirtualizedMessageList';
+import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ConversationDetails } from '@/components/chat/ConversationDetails';
 import { EmptyConversation } from '@/components/chat/EmptyConversation';
@@ -73,6 +74,13 @@ export default function ChatDashboardPage() {
                 hasMore={pageState?.hasMore ?? false}
                 isLoadingMore={pageState?.isLoading ?? false}
                 onLoadMore={handleLoadMore}
+              />
+            )}
+
+            {currentUser && activeConversationId && (
+              <TypingIndicator
+                conversationId={activeConversationId}
+                currentUserId={currentUser.id}
               />
             )}
 
