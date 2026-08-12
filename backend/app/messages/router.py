@@ -6,42 +6,45 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.db.models.user import User
-from app.sockets.server import sio
 
 from app.messages.schemas import (
     MessageCreate,
     MessageResponse,
-    MessageListItem,
     PaginatedMessagesResponse,
     MessageUpdate,
+    MessageDelete,
 )
 from app.messages.service import create_message, get_messages, edit_message, delete_message
+from app.sockets.broadcast import broadcast_to_conversation
 
 router = APIRouter()
+
 
 @router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse, status_code=201)
 async def send_message(
     conversation_id: uuid.UUID,
     payload: MessageCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     message = await create_message(
         db=db,
         conversation_id=conversation_id,
         sender_id=current_user.id,
-        content=payload.content
+        content=payload.content,
     )
-    
+
     response = MessageResponse.model_validate(message)
-    
-    await sio.emit(
+
+    await broadcast_to_conversation(
         "message_new",
+        conversation_id,
         response.model_dump(mode="json"),
-        room=f"conversation:{conversation_id}"
+        exclude_socket_id=payload.socket_id,
     )
 
     return response
+
 
 @router.get("/conversations/{conversation_id}/messages", response_model=PaginatedMessagesResponse)
 async def list_messages(
@@ -56,8 +59,9 @@ async def list_messages(
         conversation_id=conversation_id,
         user_id=current_user.id,
         cursor=cursor,
-        limit=limit
+        limit=limit,
     )
+
 
 @router.patch(
     "/messages/{message_id}",
@@ -69,12 +73,22 @@ async def update_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await edit_message(
+    message = await edit_message(
         db=db,
         message_id=message_id,
         user_id=current_user.id,
         content=payload.content,
     )
+    response = MessageResponse.model_validate(message)
+
+    await broadcast_to_conversation(
+        "message_updated",
+        message.conversation_id,
+        response.model_dump(mode="json"),
+        exclude_socket_id=payload.socket_id,
+    )
+    return response
+
 
 @router.delete(
     "/messages/{message_id}",
@@ -82,11 +96,22 @@ async def update_message(
 )
 async def remove_message(
     message_id: uuid.UUID,
+    payload: MessageDelete,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await delete_message(
+    message = await delete_message(
         db=db,
         message_id=message_id,
         user_id=current_user.id,
     )
+
+    response = MessageResponse.model_validate(message)
+
+    await broadcast_to_conversation(
+        "message_deleted",
+        message.conversation_id,
+        response.model_dump(mode="json"),
+        exclude_socket_id=payload.socket_id,
+    )
+    return response

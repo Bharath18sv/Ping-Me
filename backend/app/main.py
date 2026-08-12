@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     await check_redis_connection()
     logger.info("✅ Redis connected")
 
+    # After the program ends, close the redis connection
     yield
 
     print("LIFESPAN END")

@@ -2,6 +2,8 @@ import { MessageItem } from "@/schemas/message.schema";
 
 export interface ServerToClientEvents {
   message_new: (payload: MessageItem) => void;
+  message_updated: (payload: MessageItem) => void;
+  message_deleted: (payload: MessageItem) => void;
   typing: (payload: {
     conversation_id: string;
     user_id: string;

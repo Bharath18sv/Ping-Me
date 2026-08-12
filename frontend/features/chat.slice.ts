@@ -102,6 +102,45 @@ export const sendMessageThunk = createAsyncThunk(
   },
 );
 
+export const editMessageThunk = createAsyncThunk(
+  "chat/editMessage",
+  async (
+    {
+      messageId,
+      conversationId,
+      content,
+    }: { messageId: string; conversationId: string; content: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await chatService.editMessage(messageId, content);
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.detail || "Failed to edit message",
+      );
+    }
+  },
+);
+
+export const deleteMessageThunk = createAsyncThunk(
+  "chat/deleteMessage",
+  async (
+    {
+      messageId,
+      conversationId,
+    }: { messageId: string; conversationId: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      return await chatService.deleteMessage(messageId);
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.detail || "Failed to delete message",
+      );
+    }
+  },
+);
+
 function updateConversationPreviewHelper(
   state: ChatState,
   msg: MessageItem,
@@ -128,6 +167,21 @@ function updateConversationPreviewHelper(
       state.conversations.splice(convIndex, 1);
       state.conversations.unshift(conv);
     }
+  }
+}
+
+function updateOrReplaceMessageHelper(state: ChatState, msg: MessageItem) {
+  const convId = msg.conversation_id;
+  const msgs = state.messages[convId];
+  if (msgs) {
+    const idx = msgs.findIndex((m) => m.id === msg.id);
+    if (idx !== -1) {
+      msgs[idx] = msg;
+    }
+  }
+  const conv = state.conversations.find((c) => c.id === convId);
+  if (conv && conv.last_message && conv.last_message.id === msg.id) {
+    conv.last_message = msg;
   }
 }
 
@@ -201,6 +255,12 @@ const chatSlice = createSlice({
           }
         });
       }
+    },
+    handleMessageUpdated(state, action: PayloadAction<MessageItem>) {
+      updateOrReplaceMessageHelper(state, action.payload);
+    },
+    handleMessageDeleted(state, action: PayloadAction<MessageItem>) {
+      updateOrReplaceMessageHelper(state, action.payload);
     },
     addConversation(state, action: PayloadAction<ConversationListItem>) {
       const exists = state.conversations.some(
@@ -290,6 +350,12 @@ const chatSlice = createSlice({
           }
         }
         updateConversationPreviewHelper(state, realMessage);
+      })
+      .addCase(editMessageThunk.fulfilled, (state, action) => {
+        updateOrReplaceMessageHelper(state, action.payload);
+      })
+      .addCase(deleteMessageThunk.fulfilled, (state, action) => {
+        updateOrReplaceMessageHelper(state, action.payload);
       });
   },
 });
@@ -301,6 +367,8 @@ export const {
   handleIncomingMessage,
   clearUnreadCount,
   handleMessageRead,
+  handleMessageUpdated,
+  handleMessageDeleted,
   addConversation,
   updateConversationLastMessage,
 } = chatSlice.actions;

@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class MessageCreate(BaseModel):
     content:str
+    socket_id : str | None = None
 
 class MessageResponse(BaseModel):
     id:uuid.UUID
@@ -39,7 +40,11 @@ class PaginatedMessagesResponse(BaseModel):
 
 class MessageUpdate(BaseModel):
     content:str = Field(min_length=1, max_length=4000)
+    socket_id: str | None = None
 
 class EditMessageEvent(BaseModel):
     message_id: uuid.UUID
     content: str = Field(min_length=1, max_length=4000)
+
+class MessageDelete(BaseModel):
+    socket_id: str | None = None

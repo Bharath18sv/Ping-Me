@@ -5,6 +5,8 @@ import { SOCKET_EVENTS } from "@/constants/socket-events";
 import {
   handleIncomingMessage,
   handleMessageRead,
+  handleMessageUpdated,
+  handleMessageDeleted,
 } from "@/features/chat.slice";
 import {
   setUserOnline,
@@ -31,6 +33,14 @@ export const useSocket = () => {
     // message events
     const onMessageNew = (payload: MessageItem) => {
       dispatch(handleIncomingMessage(payload));
+    };
+
+    const onMessageUpdated = (payload: MessageItem) => {
+      dispatch(handleMessageUpdated(payload));
+    };
+
+    const onMessageDeleted = (payload: MessageItem) => {
+      dispatch(handleMessageDeleted(payload));
     };
 
     const onMessageRead = (payload: {
@@ -84,6 +94,8 @@ export const useSocket = () => {
     };
 
     socket.on(SOCKET_EVENTS.MESSAGE_NEW, onMessageNew);
+    socket.on(SOCKET_EVENTS.MESSAGE_UPDATED, onMessageUpdated);
+    socket.on(SOCKET_EVENTS.MESSAGE_DELETED, onMessageDeleted);
     socket.on(SOCKET_EVENTS.MESSAGE_READ, onMessageRead);
     socket.on(SOCKET_EVENTS.TYPING, onTyping);
     socket.on(SOCKET_EVENTS.PRESENCE_SYNC, onPresenceSync);
@@ -95,6 +107,8 @@ export const useSocket = () => {
       typingTimeoutsRef.current.clear();
 
       socket.off(SOCKET_EVENTS.MESSAGE_NEW, onMessageNew);
+      socket.off(SOCKET_EVENTS.MESSAGE_UPDATED, onMessageUpdated);
+      socket.off(SOCKET_EVENTS.MESSAGE_DELETED, onMessageDeleted);
       socket.off(SOCKET_EVENTS.MESSAGE_READ, onMessageRead);
       socket.off(SOCKET_EVENTS.TYPING, onTyping);
       socket.off(SOCKET_EVENTS.PRESENCE_SYNC, onPresenceSync);

@@ -137,32 +137,31 @@ async def disconnect(sid):
 
     logger.info("Socket disconnected: %s (%s)", sid, user_id)
 
-@sio.event
-async def message_send(sid, data):
-    # logger.info("message_send received")
-    # logger.info(data)
+# @sio.event
+# async def message_send(sid, data):
 
-    session = await sio.get_session(sid)
+#     session = await sio.get_session(sid)
 
-    payload = SendMessageEvent.model_validate(data)
+#     payload = SendMessageEvent.model_validate(data)
 
-    async with AsyncSessionLocal() as db:
+#     async with AsyncSessionLocal() as db:
 
-        message = await create_message(
-            db=db,
-            conversation_id=payload.conversation_id,
-            sender_id=session.get("user_id"),
-            content=payload.content,
-        )
+#         message = await create_message(
+#             db=db,
+#             conversation_id=payload.conversation_id,
+#             sender_id=session.get("user_id"),
+#             content=payload.content,
+#         )
 
-        response = MessageResponse.model_validate(message)
+#         response = MessageResponse.model_validate(message)
 
-    # emit this response to all the participants in the conversation
-    await sio.emit(
-        "message_new",
-        response.model_dump(mode="json"),
-        room=f"conversation:{payload.conversation_id}"
-    )
+#     # emit this response to all the participants in the conversation 
+#     await sio.emit(
+#         "message_new",
+#         response.model_dump(mode="json"),
+#         room=f"conversation:{payload.conversation_id}",
+#         skip_sid=sid
+#     )
 
 @sio.event
 async def typing_start(sid, data):
@@ -277,45 +276,45 @@ async def message_delivered(sid, data):
         room=f"conversation:{payload.conversation_id}",
     )
 
-@sio.event
-async def message_edit(sid, data):
-    session = await sio.get_session(sid)
+# @sio.event
+# async def message_edit(sid, data):
+#     session = await sio.get_session(sid)
 
-    payload = EditMessageEvent.model_validate(data)
+#     payload = EditMessageEvent.model_validate(data)
 
-    async with AsyncSessionLocal() as db:
-        message = await edit_message(
-            db=db,
-            message_id=payload.message_id,
-            user_id=session["user_id"],
-            content=payload.content,
-        )
+#     async with AsyncSessionLocal() as db:
+#         message = await edit_message(
+#             db=db,
+#             message_id=payload.message_id,
+#             user_id=session["user_id"],
+#             content=payload.content,
+#         )
 
-        response = MessageResponse.model_validate(message)
+#         response = MessageResponse.model_validate(message)
 
-    await sio.emit(
-        "message_updated",
-        response.model_dump(mode="json"),
-        room=f"conversation:{message.conversation_id}",
-    )
+#     await sio.emit(
+#         "message_updated",
+#         response.model_dump(mode="json"),
+#         room=f"conversation:{message.conversation_id}",
+#     )
 
-@sio.event
-async def message_delete(sid, data):
-    session = await sio.get_session(sid)
+# @sio.event
+# async def message_delete(sid, data):
+#     session = await sio.get_session(sid)
 
-    payload = DeleteMessageEvent.model_validate(data)
+#     payload = DeleteMessageEvent.model_validate(data)
 
-    async with AsyncSessionLocal() as db:
-        message = await delete_message(
-            db=db,
-            message_id=payload.message_id,
-            user_id=session["user_id"],
-        )
+#     async with AsyncSessionLocal() as db:
+#         message = await delete_message(
+#             db=db,
+#             message_id=payload.message_id,
+#             user_id=session["user_id"],
+#         )
 
-        response = MessageResponse.model_validate(message)
+#         response = MessageResponse.model_validate(message)
 
-    await sio.emit(
-        "message_deleted",
-        response.model_dump(mode="json"),
-        room=f"conversation:{message.conversation_id}",
-    )
+#     await sio.emit(
+#         "message_deleted",
+#         response.model_dump(mode="json"),
+#         room=f"conversation:{message.conversation_id}",
+#     )
