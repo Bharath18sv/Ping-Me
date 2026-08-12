@@ -7,6 +7,7 @@ import {
   handleMessageRead,
   handleMessageUpdated,
   handleMessageDeleted,
+  addConversation,
 } from "@/features/chat.slice";
 import {
   setUserOnline,
@@ -15,6 +16,7 @@ import {
   setOnlineUsers,
 } from "@/features/presence.slice";
 import { MessageItem } from "@/schemas/message.schema";
+import { ConversationListItem } from "@/schemas/conversation.schema";
 
 export const useSocket = () => {
   const dispatch = useAppDispatch();
@@ -30,7 +32,7 @@ export const useSocket = () => {
     connectSocket();
     const socket = getSocket();
 
-    // message events
+    // message & conversation events
     const onMessageNew = (payload: MessageItem) => {
       dispatch(handleIncomingMessage(payload));
     };
@@ -41,6 +43,10 @@ export const useSocket = () => {
 
     const onMessageDeleted = (payload: MessageItem) => {
       dispatch(handleMessageDeleted(payload));
+    };
+
+    const onConversationNew = (payload: ConversationListItem) => {
+      dispatch(addConversation(payload));
     };
 
     const onMessageRead = (payload: {
@@ -96,6 +102,7 @@ export const useSocket = () => {
     socket.on(SOCKET_EVENTS.MESSAGE_NEW, onMessageNew);
     socket.on(SOCKET_EVENTS.MESSAGE_UPDATED, onMessageUpdated);
     socket.on(SOCKET_EVENTS.MESSAGE_DELETED, onMessageDeleted);
+    socket.on(SOCKET_EVENTS.CONVERSATION_NEW, onConversationNew);
     socket.on(SOCKET_EVENTS.MESSAGE_READ, onMessageRead);
     socket.on(SOCKET_EVENTS.TYPING, onTyping);
     socket.on(SOCKET_EVENTS.PRESENCE_SYNC, onPresenceSync);
@@ -109,6 +116,7 @@ export const useSocket = () => {
       socket.off(SOCKET_EVENTS.MESSAGE_NEW, onMessageNew);
       socket.off(SOCKET_EVENTS.MESSAGE_UPDATED, onMessageUpdated);
       socket.off(SOCKET_EVENTS.MESSAGE_DELETED, onMessageDeleted);
+      socket.off(SOCKET_EVENTS.CONVERSATION_NEW, onConversationNew);
       socket.off(SOCKET_EVENTS.MESSAGE_READ, onMessageRead);
       socket.off(SOCKET_EVENTS.TYPING, onTyping);
       socket.off(SOCKET_EVENTS.PRESENCE_SYNC, onPresenceSync);

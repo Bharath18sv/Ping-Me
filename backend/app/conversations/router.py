@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.post(
     "",
-    response_model=ConversationResponse,
+    response_model=ConversationListItem,
     status_code=201
     )
 # we should always use non-default arguments first before using the default ones
